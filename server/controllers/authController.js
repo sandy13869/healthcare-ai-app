@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { getUserModel, findUserWithPassword } = require('../utils/modelHelper.js');
 const bcrypt = require('bcryptjs');
+const { clearStatsCache } = require('./userController.js');
+const { getStorageMode } = require('../config/database.js');
 
 const generateToken = (id) => {
   const secret = process.env.JWT_SECRET || 'default-secret-key-change-in-production';
@@ -24,14 +26,14 @@ const register = async (req, res, next) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash password for in-memory storage
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password for in-memory storage (MongoDB model handles its own hashing via pre-save hook)
+    const storedPassword = getStorageMode() ? await bcrypt.hash(password, 10) : password;
 
     // Create user
     const user = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password: storedPassword,
       role: role || 'patient',
       phone,
       dateOfBirth,
@@ -43,10 +45,7 @@ const register = async (req, res, next) => {
       lastLogin: new Date()
     });
 
-    // For MongoDB, save is needed
-    if (user.save) {
-      await user.save();
-    }
+    clearStatsCache();
 
     const token = generateToken(user._id);
 
