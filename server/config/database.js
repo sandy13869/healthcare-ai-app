@@ -24,6 +24,7 @@ const connectDB = async () => {
     });
     isConnected = true;
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+
     return { useInMemory: false, connection: conn };
   } catch (error) {
     console.warn(`⚠️  MongoDB connection failed: ${error.message}`);
